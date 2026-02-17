@@ -2,13 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Brain,
-  CheckCircle,
   GitBranch,
   Lightbulb,
   Play,
   Volume2,
-  VolumeX,
-  XCircle
+  VolumeX
 } from "lucide-react";
 import * as Tone from "tone";
 
