@@ -16,7 +16,7 @@ import {
 import * as Tone from "tone";
 
 const AnalysisLab = () => {
-  const [currentScreen, setCurrentScreen] = useState("home");
+  const [currentSystem] = useState(...);
   const [selectedModule, setSelectedModule] = useState(null);
   const [score, setScore] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
