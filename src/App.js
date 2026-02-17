@@ -13,9 +13,10 @@ import {
   Volume2,
   VolumeX
 } from "lucide-react";
-import * as Tone from "tone";
+import { Synth } from "tone";
 
 const AnalysisLab = () => {
+  const [currentScreen, setCurrentScreen] = useState("home");
   const [selectedModule, setSelectedModule] = useState(null);
   const [score, setScore] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -24,7 +25,7 @@ const AnalysisLab = () => {
 
   // Init synth once
   useEffect(() => {
-    const synth = new Tone.Synth({
+    const synth = new Synth({
       oscillator: { type: "sine" },
       envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 }
     }).toDestination();
