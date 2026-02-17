@@ -13,7 +13,7 @@ import {
   Volume2,
   VolumeX
 } from "lucide-react";
-import { Synth } from "tone";
+import * as Tone from "tone";
 
 const AnalysisLab = () => {
   const [currentScreen, setCurrentScreen] = useState("home");
