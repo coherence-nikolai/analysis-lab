@@ -23,12 +23,12 @@ this.el.className="particle";
 this.x=Math.random()*window.innerWidth;
 this.y=Math.random()*window.innerHeight;
 this.angle=Math.random()*Math.PI*2;
-this.speed=0.15+Math.random()*0.15;
+this.speed=0.10+Math.random()*0.12;
 field.appendChild(this.el);
 }
 
 Particle.prototype.update=function(){
-this.angle+=0.002;
+this.angle+=0.0016;
 this.x+=Math.cos(this.angle)*this.speed;
 this.y+=Math.sin(this.angle)*this.speed;
 this.el.style.transform="translate("+this.x+"px,"+this.y+"px)";

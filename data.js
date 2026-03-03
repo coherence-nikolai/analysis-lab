@@ -41,6 +41,6 @@ centered:["Baja el ritmo.\nAncla en la sensación física.","Baja el ritmo."],
 luminous:["Aumenta la calidez visible.\nQue se note.","Aumenta la calidez visible."]
 },
 explain:
-"En física cuántica, las partículas existen en superposición — múltiples estados posibles a la vez — hasta que son medidas.\n\nLa medición colapsa esas posibilidades en un único resultado.\n\nEl comportamiento humano sigue una estructura similar.\nAntes de responder, múltiples respuestas están disponibles.\nLa que enactas se vuelve real.\n\nEste experimento amplía ese rango antes de que la acción lo fije."
+"En física cuántica, las partículas existen en superposición — múltiples estados posibles a la vez — hasta que son medidas.\n\nLa medición colapsa esas posibilidades en un único resultado.\n\nEl comportamiento humano sigue una estructura similar.\nAntes de responder, múltiples respuestas están disponibles.\nLa que eliges se vuelve real.\n\nEste experimento amplía ese rango antes de que la acción lo fije."
 }
 };
