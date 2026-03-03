@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════
-// COLLAPSE↑ — DATA
-// All content: states, steps, prompts, translations
+// COLLAPSE↑ — DATA v3.7
+// Fixes: ambiguous imagination prompts corrected,
+//        step 3 rewritten for clarity
 // ═══════════════════════════════════════
 
 const TRANSLATIONS = {
@@ -104,64 +105,51 @@ const STATES = {
 const STEPS = {
   en: [
     {
-      // STEP 1 — Particles are all blurry and drifting. User sees this first.
-      // ps:'sp' = superposition scene — all 8 particles blurry, drifting
       big:'These are particles.\nRight now they have no definite state.',
       small:'Watch them. Blurry. Drifting. Undefined.\nEverywhere at once.',
       ps:'sp'
     },
     {
-      // STEP 2 — Name what they just saw
       big:'This is called <b>superposition.</b>',
       small:'Every possible state exists simultaneously.\nNone more real than another.\nUntil one is measured.',
       ps:'sp'
     },
     {
-      // STEP 3 — One particle begins to highlight
-      // ps:'one' = one_highlighted scene — one particle slightly brighter
-      big:'Now watch what happens\nwhen this particle is <b>observed.</b>',
+      // FIX: Text now matches what actually happens — one particle snaps into focus
+      big:'One particle is being <b>observed.</b>\nWatch it snap into reality.',
+      small:'Everything else fades.\nThe field collapses to a single point.',
       ps:'one'
     },
     {
-      // STEP 4 — Labels ghost in on all particles
-      // ps:'all_labelled' = all particles show state name labels
       big:'Every version of you\nexists right now.',
       small:'Calm. Courageous. Clear. Present.\nAll equally real. All waiting.',
       ps:'all_labelled'
     },
     {
-      // STEP 5 — One particle begins resolving
-      // ps:'resolving' = one particle sharpening slowly
       big:'Observation does not reveal\nwhat is there.\nIt <b>creates</b> what is there.',
       ps:'resolving'
     },
     {
-      // STEP 6 — Full collapse — one sharp, others drift outward
-      // ps:'collapse_demo' = collapsed scene
       big:'This is <b>collapse.</b>',
       small:'Not loss. Not failure.\nThe moment infinite becomes real.\nYou chose one. It became this.',
       ps:'collapse_demo'
     },
     {
-      // STEP 7 — Bridge to self
       big:'Your nervous system\nfollows the same physics.',
       small:'Observed as <b>anxious</b> for a lifetime — it solidifies.\nThe other versions never disappeared.\nThey were simply unmeasured.',
       ps:'stab'
     },
     {
-      // STEP 8 — The mechanism
       big:'The first time you observe courage —\nit flickers.\nThe hundredth time —\nit is simply <b>who you are.</b>',
       note:'<span>Verified:</span> Neuroplasticity confirms repeated observation patterns rebuild neural architecture. Identity forms through accumulated attention.',
       ps:'stab'
     },
     {
-      // STEP 9 — The breath primed
       big:'When you breathe in superposition —\nyou are returning to the open field.\n<b>Everything possible. Nothing fixed.</b>',
       small:'When you exhale into a state —\nyou are collapsing upward.\nChoosing which version becomes real.',
       ps:'stab'
     },
     {
-      // STEP 10 — The experiment
       big:'You are about to run\nthis experiment on yourself.',
       small:'<b>Consciously.</b>',
       ps:'done',
@@ -180,7 +168,9 @@ const STEPS = {
       ps:'sp'
     },
     {
-      big:'Ahora observa qué sucede\ncuando esta partícula es <b>observada.</b>',
+      // FIX: Text matches the visual — one particle crystallises
+      big:'Una partícula está siendo <b>observada.</b>\nObserva cómo se cristaliza.',
+      small:'Todo lo demás se desvanece.\nEl campo colapsa a un solo punto.',
       ps:'one'
     },
     {
@@ -296,16 +286,17 @@ const IMAGINATION = {
       "Visualise a spotlight narrowing until it illuminates only this: here, this room, this body, this moment."
     ],
     Luminous: [
-      "Remember a moment someone's face changed because of something you did or said. Hold that.",
-      "Think of a time your presence in a room quietly shifted something. You may not have noticed — someone else did.",
+      // FIX: "face changed" was ambiguous — all prompts now clearly positive
+      "Remember a moment your presence made someone's face light up. Stay with that warmth.",
+      "Think of a time your words landed exactly right and you watched someone visibly relax. Find that feeling.",
       "Visualise light emanating from the centre of your chest. Not performed. Just existing. Just radiating.",
       "Remember a moment you felt genuinely, completely yourself — and it was enough. More than enough.",
-      "Think of someone whose mere presence makes things better. You have been that for someone. More than once.",
+      "Think of someone whose mere presence makes everything better. You have been that for someone. More than once.",
       "Imagine the version of you that has stopped dimming yourself for the comfort of others. Feel how they move through a room.",
-      "Remember a moment of genuine joy — unguarded, unselfconscious. The light you were in that moment is still in you.",
+      "Remember a moment of pure, unguarded joy — unselfconscious, uninhibited. That light is still in you.",
       "Visualise yourself in your next conversation choosing to be fully present and fully generous. Feel what becomes possible.",
       "Think of what you carry that others need — not as a burden, but as a gift you have not fully offered yet.",
-      "Imagine that the quality of your inner state is already affecting everyone near you. It is. It always has been."
+      "Imagine that the quality of your inner state is already lifting everyone near you. It is. It always has been."
     ],
     Open: [
       "Think of something you have been holding tightly. Imagine your hands releasing it.",
@@ -394,16 +385,17 @@ const IMAGINATION = {
       "Visualiza un foco de luz que se va estrechando hasta iluminar solo esto: aquí, este espacio, este cuerpo, este momento."
     ],
     Luminoso: [
-      "Recuerda un momento en que el rostro de alguien cambió por algo que hiciste o dijiste. Quédate ahí.",
-      "Piensa en una vez en que tu presencia en un lugar cambió algo sutilmente. Puede que no lo hayas notado — alguien más sí.",
+      // FIX: All prompts clearly warm and positive
+      "Recuerda un momento en que tu presencia hizo que el rostro de alguien se iluminara. Quédate en esa calidez.",
+      "Piensa en una vez en que tus palabras llegaron exactamente bien y viste a alguien relajarse visiblemente.",
       "Visualiza luz emanando desde el centro de tu pecho. No actuada. Solo existiendo. Solo irradiando.",
       "Recuerda un momento en que te sentiste genuina y completamente tú mismo — y fue suficiente. Más que suficiente.",
-      "Piensa en alguien cuya sola presencia hace que las cosas mejoren. Tú has sido eso para alguien. Más de una vez.",
+      "Piensa en alguien cuya sola presencia hace que todo mejore. Tú has sido eso para alguien. Más de una vez.",
       "Imagina la versión de ti que ha dejado de apagarse para que otros se sientan cómodos. Siente cómo se mueve esa persona por el mundo.",
-      "Recuerda un momento de alegría genuina — sin guardia, sin autoconciencia. La luz que eras en ese momento sigue en ti.",
-      "Visualízate en tu próxima conversación eligiendo estar completamente presente y completamente generoso. Siente lo que se vuelve posible.",
+      "Recuerda un momento de alegría pura y desinhibida. Esa luz sigue en ti.",
+      "Visualízate en tu próxima conversación eligiendo estar completamente presente y generoso. Siente lo que se vuelve posible.",
       "Piensa en lo que cargas que otros necesitan — no como una carga, sino como un regalo que aún no has ofrecido del todo.",
-      "Imagina que la calidad de tu estado interior ya está afectando a todos los que tienes cerca. Lo está. Siempre lo ha hecho."
+      "Imagina que la calidad de tu estado interior ya está elevando a todos los que tienes cerca. Lo está. Siempre lo ha hecho."
     ],
     Abierto: [
       "Piensa en algo que has estado sosteniendo con fuerza. Imagina tus manos soltándolo.",

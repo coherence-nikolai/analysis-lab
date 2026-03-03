@@ -20,13 +20,13 @@
   --ascending:   #ffe8b0;
   --bg:          #090805;
 
-  --fb:  clamp(20px,5vw,26px);    /* body — main step text */
-  --fs:  clamp(16px,4vw,20px);    /* secondary */
-  --fl:  clamp(12px,3vw,14px);    /* label / hint */
-  --fw:  clamp(56px,14vw,86px);   /* state word on collapse screen */
-  --fwm: clamp(26px,6.5vw,36px);  /* wordmark / orb names */
-  --fsa: clamp(140px,36vw,210px); /* sigil arrow glyph */
-  --fsw: clamp(28px,7vw,42px);    /* sigil wordmark */
+  --fb:  clamp(20px,5vw,26px);
+  --fs:  clamp(16px,4vw,20px);
+  --fl:  clamp(12px,3vw,14px);
+  --fw:  clamp(56px,14vw,86px);
+  --fwm: clamp(26px,6.5vw,36px);
+  --fsa: clamp(140px,36vw,210px);
+  --fsw: clamp(28px,7vw,42px);
 }
 body.large {
   --fb: clamp(24px,6vw,30px);
@@ -82,85 +82,72 @@ html, body {
 
 /* ════════════════════════════════
    SIGIL SCREEN
-   Sequence: arrow fades in → glows → fades out → particle materialises where it pointed
+   FIX: wordmark reveal — "Collapse" first, then "↑" joins it.
+   No sigilParticle. No stray dot.
 ════════════════════════════════ */
-#s-sigil { z-index:50; gap:18px; justify-content:center; }
+#s-sigil { z-index:50; gap:0; justify-content:center; align-items:center; }
 
-/* The arrow: centred, uses Cormorant SC for the glyph only */
-#sigilArrow {
-  font-family:'Cormorant SC',serif;
-  font-size:var(--fsa);
-  line-height:1;
-  color:var(--gold-bright);
-  opacity:0;
-  filter:blur(16px);
-  text-shadow:0 0 40px rgba(240,204,136,.5),0 0 100px rgba(201,169,110,.25);
-  user-select:none; pointer-events:none;
-  transition:opacity 1.6s ease, filter 1.6s ease, text-shadow 1.6s ease;
-}
-#sigilArrow.crystallized {
-  opacity:1; filter:blur(0);
-  text-shadow:0 0 40px rgba(240,204,136,.65),0 0 100px rgba(201,169,110,.35),0 0 160px rgba(255,232,176,.18);
-}
-#sigilArrow.dissolving {
-  opacity:0; filter:blur(12px);
-  transition:opacity 1.4s ease, filter 1.4s ease;
+/* Wordmark container — keeps word and arrow inline, centred */
+.sigil-wm {
+  display:flex;
+  align-items:baseline;
+  gap:0;
 }
 
-/*
-  Particle: absolutely positioned at screen centre.
-  Appears after arrow dissolves. Slightly larger — 16px.
-  Uses fixed viewport positioning so it truly centres on screen.
-*/
-#sigilParticle {
-  position:fixed;
-  top:50%; left:50%;
-  margin-top:-8px; margin-left:-8px; /* centre without transform */
-  width:16px; height:16px; border-radius:50%;
-  background:var(--gold-bright);
-  box-shadow:0 0 20px var(--gold-bright),0 0 55px rgba(240,204,136,.50),0 0 100px rgba(201,169,110,.25);
-  opacity:0; pointer-events:none; z-index:15;
-  transition:opacity 2s ease;
-  animation:spGlow 3.5s ease-in-out infinite;
+/* "Collapse" — fades in from slight blur */
+#sigilWord {
+  font-family:'Plus Jakarta Sans', sans-serif;
+  font-size: var(--fsw);
+  font-weight: 300;
+  letter-spacing: .22em;
+  color: var(--gold);
+  opacity: 0;
+  filter: blur(8px);
+  transition: opacity 2.2s ease, filter 2.2s ease;
+  user-select: none;
+  pointer-events: none;
 }
-#sigilParticle.visible { opacity:1; }
-@keyframes spGlow {
-  0%,100%{box-shadow:0 0 18px var(--gold-bright),0 0 50px rgba(240,204,136,.46),0 0 90px rgba(201,169,110,.20);transform:scale(1);}
-  50%    {box-shadow:0 0 28px var(--gold-bright),0 0 72px rgba(240,204,136,.62),0 0 125px rgba(201,169,110,.30);transform:scale(1.18);}
+#sigilWord.on {
+  opacity: 1;
+  filter: blur(0);
 }
 
-/* Wordmark beneath particle */
-#sigilWm {
-  font-family:'Plus Jakarta Sans',sans-serif;
-  font-size:var(--fsw); font-weight:300;
-  letter-spacing:.22em; color:var(--gold);
-  opacity:0; text-align:center;
-  transition:opacity 1.6s ease;
+/* "↑" — fades in after word, with upward drift from below */
+#sigilArrowEl {
+  font-family:'Plus Jakarta Sans', sans-serif;
+  font-size: var(--fsw);
+  font-weight: 300;
+  color: var(--gold-bright);
+  opacity: 0;
+  filter: blur(6px);
+  transform: translateY(6px);
+  transition: opacity 1.8s ease, filter 1.8s ease, transform 1.8s cubic-bezier(.16,1,.3,1);
+  text-shadow: 0 0 30px rgba(240,204,136,.55), 0 0 70px rgba(201,169,110,.28);
+  user-select: none;
+  pointer-events: none;
+  /* letter-spacing reset so arrow sits flush */
+  letter-spacing: 0;
+  padding-left: .10em;
+}
+#sigilArrowEl.on {
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
 }
 
 /* ════════════════════════════════
    INITIATION
-   Particle is fixed — decoupled from text flow entirely
 ════════════════════════════════ */
 #s-init { justify-content:flex-end; gap:0; padding-bottom:clamp(80px,20vw,130px); }
 
-/*
-  Initiation particle: fixed at ~36% from top.
-  Never moves regardless of text content changes.
-  Quantum drift — micro-translations, blur in/out, opacity shimmer.
-*/
-
-/* Step content — one calm composition */
 .init-content {
   width:100%; max-width:340px;
   text-align:center;
 }
 
-/* Steps: all same size, same colour, clean */
 .step { display:none; flex-direction:column; align-items:center; gap:clamp(20px,5vw,28px); width:100%; }
 .step.on { display:flex; }
 
-/* Main thought — the primary text, slightly larger */
 .s-main {
   font-size:var(--fb);
   font-weight:300;
@@ -168,10 +155,8 @@ html, body {
   color:var(--cream);
   letter-spacing:.01em;
 }
-/* Single gold word — only used inline via <b> tag */
 .s-main b { color:var(--gold-bright); font-weight:300; }
 
-/* Supporting text — same font, slightly smaller, dimmer */
 .s-sup {
   font-size:var(--fs);
   font-weight:300;
@@ -181,7 +166,6 @@ html, body {
 }
 .s-sup b { color:var(--gold); font-weight:300; }
 
-/* Equation — monospace feel, gold-dim, smaller */
 .s-eq {
   font-size:clamp(12px,3vw,15px);
   font-weight:300;
@@ -191,7 +175,6 @@ html, body {
   font-family:'Plus Jakarta Sans',sans-serif;
 }
 
-/* Science note — very small, ghost */
 .s-note {
   font-size:var(--fl);
   font-weight:300;
@@ -203,7 +186,6 @@ html, body {
 }
 .s-note b { color:rgba(201,169,110,.55); font-weight:300; }
 
-/* Ready button — clean, understated */
 .ready-btn {
   background:none;
   border:1px solid rgba(201,169,110,.28);
@@ -223,7 +205,6 @@ html, body {
   color:var(--gold-bright);
 }
 
-/* Dots + hint — fixed at bottom */
 #sdots { position:fixed;bottom:54px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:20;pointer-events:none; }
 .sdot { width:5px;height:5px;border-radius:50%;background:rgba(201,169,110,.18);transition:background .6s ease; }
 .sdot.on { background:rgba(201,169,110,.58); }
@@ -240,7 +221,6 @@ html, body {
 
 .f-line { font-size:var(--fs);color:var(--cream-dim);text-align:center;font-weight:300;letter-spacing:.02em; }
 
-/* Grid */
 .grid { display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%;max-width:390px; }
 .orb {
   display:flex;align-items:center;justify-content:center;
@@ -268,14 +248,12 @@ html, body {
 .oname { font-family:'Plus Jakarta Sans',sans-serif;font-weight:300;letter-spacing:.06em;color:var(--cream);position:relative;z-index:1;transition:color .3s ease,text-shadow .3s ease;padding:0 6px;text-align:center;line-height:1; }
 .orb:hover .oname,.orb:active .oname { color:var(--gold-bright);text-shadow:0 0 18px rgba(240,204,136,.50); }
 
-/* Glyphs */
 .glyphs { display:flex;gap:0;align-items:center;border-top:1px solid rgba(201,169,110,.08);padding-top:6px;width:100%;max-width:390px;justify-content:center; }
 .glyph-wrap { display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 28px; }
 .glyph { background:none;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(18px,4.5vw,24px);color:rgba(201,169,110,.35);cursor:pointer;padding:8px 14px;min-width:50px;min-height:44px;-webkit-tap-highlight-color:transparent;transition:color .4s ease;display:block; }
 .glyph:hover { color:var(--gold); }
 .glyph-label { font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(9px,2.2vw,11px);letter-spacing:.14em;color:rgba(201,169,110,.20);text-transform:uppercase;pointer-events:none;font-weight:300; }
 
-/* Obs count + revisit */
 .obs-ct { font-family:'Plus Jakarta Sans',sans-serif;font-size:var(--fs);font-weight:300;letter-spacing:.04em;color:rgba(201,169,110,.28);text-align:center;min-height:22px; }
 .revisit-wrap { display:flex;justify-content:center;width:100%; }
 #revisitBtn { background:none;border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:var(--fl);letter-spacing:.12em;color:rgba(201,169,110,.40);cursor:pointer;padding:10px 20px;min-height:40px;-webkit-tap-highlight-color:transparent;transition:color .4s ease;font-weight:300; }
@@ -289,9 +267,7 @@ html, body {
 .cp-stage.on { opacity:1;pointer-events:all; }
 .stage-inner { display:flex;flex-direction:column;align-items:center;gap:22px;width:100%;max-width:370px; }
 
-/* stage 1 */
-.collapsed-dot { width:14px;height:14px;border-radius:50%;background:var(--gold-bright);box-shadow:0 0 18px var(--gold-bright),0 0 55px rgba(240,204,136,.42);animation:cdg 3s ease-in-out infinite;margin:0 auto; }
-@keyframes cdg{0%,100%{box-shadow:0 0 18px var(--gold-bright),0 0 55px rgba(240,204,136,.38)}50%{box-shadow:0 0 26px var(--gold-bright),0 0 75px rgba(240,204,136,.52)}}
+/* stage 1 — FIX: removed .collapsed-dot, particle canvas is the only light source */
 .cword { font-family:'Plus Jakarta Sans',sans-serif;font-size:var(--fw);font-weight:300;letter-spacing:.08em;color:var(--ascending);text-shadow:0 0 40px rgba(255,232,176,.60),0 0 80px rgba(255,200,80,.28);line-height:1; }
 .c-confirm-label { font-family:'Plus Jakarta Sans',sans-serif;font-size:var(--fl);letter-spacing:.14em;color:var(--gold);display:block;font-weight:300;margin-bottom:4px; }
 .c-confirm-sub   { font-size:var(--fs);color:var(--cream-ghost);font-weight:300; }
@@ -306,7 +282,6 @@ html, body {
 .imag-prompt { font-size:var(--fb);color:var(--cream-dim);line-height:1.82;font-style:italic;max-width:330px;font-weight:300; }
 
 /* stage 4 — breath */
-/* Single centred column. Text zone is fixed height — nothing moves. */
 .breath-wrap {
   display:flex; flex-direction:column; align-items:center;
   gap:0; width:100%; position:relative;
@@ -343,13 +318,11 @@ html, body {
 .bripple.expand { animation:ripOut 4s cubic-bezier(.4,0,.2,1) forwards; }
 @keyframes ripOut{0%{opacity:.5;transform:scale(1)}100%{opacity:0;transform:scale(10)}}
 
-/* Single text slot — fixed height, text crossfades inside it */
 .btext-slot {
   height: clamp(40px,10vw,56px);
   display:flex; align-items:center; justify-content:center;
   width:100%; position:relative;
 }
-/* The one text element that handles everything */
 .btext {
   position:absolute;
   font-size:var(--fb); font-weight:300;
@@ -361,10 +334,7 @@ html, body {
 .btext.gold { color:var(--gold); font-size:var(--fw); letter-spacing:.10em; }
 .btext.dim  { color:var(--cream-dim); font-size:var(--fs); line-height:1.7; }
 
-/* Breath cycle dots — 3 tiny dots, fill as cycles complete */
-.bdots {
-  display:flex; gap:10px; margin-top:32px;
-}
+.bdots { display:flex; gap:10px; margin-top:32px; }
 .bdot {
   width:5px; height:5px; border-radius:50%;
   background:rgba(201,169,110,.18);
@@ -372,7 +342,6 @@ html, body {
 }
 .bdot.done { background:rgba(201,169,110,.60); }
 
-/* End message — fades in over text slot */
 .bend {
   position:absolute;
   font-size:var(--fs); color:var(--cream-dim);
@@ -422,15 +391,12 @@ html, body {
   <button class="chrome-btn" id="fontBtn">A+</button>
 </div>
 
-<!-- SIGIL — arrow only, particle is fixed/global -->
+<!-- SIGIL — wordmark reveal only. No sigilParticle. -->
 <div class="screen active" id="s-sigil">
-  <div id="sigilArrow">↑</div>
-  <div id="sigilWm">Collapse↑</div>
+  <div class="sigil-wm">
+    <span id="sigilWord">Collapse</span><span id="sigilArrowEl">↑</span>
+  </div>
 </div>
-
-<!-- sigilParticle lives outside screens — persists across sigil→init transition -->
-<div id="sigilParticle"></div>
-
 
 <!-- INITIATION -->
 <div class="screen" id="s-init">
@@ -514,8 +480,8 @@ html, body {
   <button class="return-btn" id="stillBack"></button>
 </div>
 
-<script src="data.js?v=35e"></script>
-<script src="app.js?v=35e"></script>
+<script src="data.js?v=37"></script>
+<script src="app.js?v=37"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

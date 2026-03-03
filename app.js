@@ -1,11 +1,12 @@
 // ═══════════════════════════════════════
-// COLLAPSE↑ — APP LOGIC v3.6
-// Superposition particle choreography
+// COLLAPSE↑ — APP LOGIC v3.7
+// Fixes: sigil wordmark reveal, single particle enforcement,
+//        step 3 dramatic observation, ambiguous prompts corrected
 // ═══════════════════════════════════════
 
 // ─── STATE ───
 let lang          = localStorage.getItem('cu_lang') || 'en';
-let visited       = localStorage.getItem('cu_v35');
+let visited       = localStorage.getItem('cu_v37');
 let totalObs      = parseInt(localStorage.getItem('cu_obs') || '0');
 let stateObs      = JSON.parse(localStorage.getItem('cu_sobs') || '{}');
 let curStep       = 0;
@@ -81,9 +82,6 @@ function clearAllBreath() {
 // Each has a clarity value 0..1
 //   0 = fully blurry, drifting, undefined (superposition)
 //   1 = sharp, still, crystallised (collapsed)
-//
-// Choreography is driven by initScene() calls
-// which smoothly animate clarity targets.
 // ═══════════════════════════════════════
 
 const cv = document.getElementById('particleCanvas');
@@ -117,65 +115,52 @@ class Pt {
 }
 function initPts() { pts = Array.from({ length: 48 }, () => new Pt()); }
 
-// Superposition particles
 const SP_COUNT = 8;
 let spParticles = [];
-// Global clarity target: 0=all blurry, 1=one collapsed
-// chosenIndex: which particle is collapsing (-1 = none)
-let spScene = 'superposition'; // superposition | resolving | collapsed | field
+let spScene = 'superposition';
 let spChosen = -1;
 
 class SpParticle {
   constructor(i) {
     this.i       = i;
-    this.clarity = 0;      // 0=blurry/unknown, 1=sharp/collapsed
+    this.clarity = 0;
     this.targetClarity = 0;
-    this.alpha   = 0;      // fade in
+    this.alpha   = 0;
     this.targetAlpha = 0;
-    // Spread across screen in a loose cloud, centred
     const angle  = (i / SP_COUNT) * Math.PI * 2 + Math.random() * 0.4;
-    const radius = 0.12 + Math.random() * 0.12; // fraction of screen
-    this.cx = 0.5 + Math.cos(angle) * radius;   // centre x (0..1)
-    this.cy = 0.22 + Math.abs(Math.sin(angle)) * 0.14; // strictly upper screen
+    const radius = 0.12 + Math.random() * 0.12;
+    this.cx = 0.5 + Math.cos(angle) * radius;
+    this.cy = 0.22 + Math.abs(Math.sin(angle)) * 0.14;
     this.x  = this.cx * cv.width;
     this.y  = this.cy * cv.height;
-    // Drift
     this.ph  = Math.random() * Math.PI * 2;
     this.spd = 0.3 + Math.random() * 0.4;
-    this.driftR = 18 + Math.random() * 22; // drift radius px
-    // Size
+    this.driftR = 18 + Math.random() * 22;
     this.baseR = 7 + Math.random() * 5;
-    // Label (state name) — set when scene transitions
     this.label  = '';
     this.labelA = 0;
     this.labelTargetA = 0;
   }
 
   update() {
-    // Ease clarity and alpha toward targets
     this.clarity += (this.targetClarity - this.clarity) * (this._clarityEase || 0.018);
     this.alpha   += (this.targetAlpha   - this.alpha)   * (this._alphaEase   || 0.022);
     this.labelA  += (this.labelTargetA  - this.labelA)  * 0.015;
 
-    // Drift — collapsed particle barely moves, superposed ones drift freely
     this.ph += 0.008 * this.spd;
     const driftScale = 1 - this.clarity * 0.92;
     this.x = this.cx * cv.width  + Math.cos(this.ph)        * this.driftR * driftScale;
     this.y = this.cy * cv.height + Math.sin(this.ph * 0.73) * this.driftR * 0.6 * driftScale;
 
-    // ABSOLUTE ceiling — particles confined to upper 38% of screen, always
     const maxY = cv.height * 0.38;
     if (this.y > maxY) {
-      this.y  = maxY;
-      // Push centre upward too so drift doesn't keep fighting ceiling
+      this.y = maxY;
       if (this.cy > 0.34) this.cy -= 0.002;
     }
 
-    // During field scene: drift outward slowly but stay in upper zone
     if (spScene === 'field' && this.i !== spChosen) {
       this.cx += (Math.random() - 0.5) * 0.0002;
       this.cy += (Math.random() - 0.5) * 0.0002;
-      // Keep cy anchored to upper half
       if (this.cy > 0.38) this.cy = 0.38;
     }
   }
@@ -183,12 +168,8 @@ class SpParticle {
   draw() {
     if (this.alpha < 0.01) return;
     const c = this.clarity;
-
-    // Blur: max at clarity=0, zero at clarity=1
     const blurPx = (1 - c) * 14 + 2;
-    // Size: slightly larger when collapsed
     const r = this.baseR * (0.9 + c * 0.5);
-    // Glow radius
     const glowR = r * (3 - c * 1.5);
 
     cx.save();
@@ -196,19 +177,16 @@ class SpParticle {
     cx.filter = `blur(${blurPx}px)`;
     cx.globalCompositeOperation = 'lighter';
 
-    // Outer glow
     const g = cx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
     const coreA  = 0.20 + c * 0.65;
-    const outerA = 0.0;
     g.addColorStop(0,   `rgba(240,204,136,${coreA})`);
     g.addColorStop(0.3, `rgba(240,204,136,${coreA * 0.35})`);
-    g.addColorStop(1,   `rgba(240,204,136,${outerA})`);
+    g.addColorStop(1,   `rgba(240,204,136,0)`);
     cx.fillStyle = g;
     cx.beginPath();
     cx.arc(this.x, this.y, glowR, 0, Math.PI * 2);
     cx.fill();
 
-    // Core dot — only visible when semi-collapsed
     if (c > 0.1) {
       cx.filter = 'blur(0px)';
       cx.globalAlpha = this.alpha * c * 0.9;
@@ -220,7 +198,6 @@ class SpParticle {
 
     cx.restore();
 
-    // State label — fades in during 'resolving' step
     if (this.labelA > 0.01 && this.label) {
       cx.save();
       cx.globalAlpha = this.labelA * this.alpha;
@@ -238,26 +215,17 @@ function initSpParticles() {
 }
 
 // ─── SCENE TRANSITIONS ───
-// Each scene sets targets on all particles.
-// The update loop eases toward targets — no sudden jumps.
-
 function initScene(scene, chosenIdx) {
   spScene = scene;
   if (chosenIdx !== undefined) spChosen = chosenIdx;
-  const states = STATES[lang];
 
-  // one_highlighted uses faster easing so the change is unmissable
   const clarityEase = scene === 'one_highlighted' ? 0.045 : 0.018;
   const alphaEase   = scene === 'one_highlighted' ? 0.055 : 0.022;
 
   spParticles.forEach((p, i) => {
-    if (scene === 'one_highlighted') {
-      p._clarityEase = clarityEase;
-      p._alphaEase   = alphaEase;
-    } else {
-      p._clarityEase = 0.018;
-      p._alphaEase   = 0.022;
-    }
+    p._clarityEase = (scene === 'one_highlighted') ? clarityEase : 0.018;
+    p._alphaEase   = (scene === 'one_highlighted') ? alphaEase   : 0.022;
+
     switch(scene) {
 
       case 'hidden':
@@ -267,51 +235,46 @@ function initScene(scene, chosenIdx) {
         break;
 
       case 'superposition':
-        // All particles: visible, blurry, drifting, no labels
         p.targetAlpha   = 0.55 + Math.random() * 0.3;
         p.targetClarity = 0;
         p.labelTargetA  = 0;
         break;
 
       case 'one_highlighted':
-        // ONE particle blazes — others drop to near invisible. Unmistakable.
-        p.targetAlpha   = i === 0 ? 1.0  : 0.08 + Math.random() * 0.06;
-        p.targetClarity = i === 0 ? 0.75 : 0;
+        // FIX: ONE blazes, all others go near-invisible — unmistakable contrast
+        p.targetAlpha   = i === 0 ? 1.0  : 0.05 + Math.random() * 0.04;
+        p.targetClarity = i === 0 ? 0.85 : 0;
         p.labelTargetA  = 0;
         break;
 
       case 'all_labelled':
-        // All blurry, slightly more visible — "every version of you" (no labels)
         p.targetAlpha   = 0.60 + Math.random() * 0.30;
         p.targetClarity = 0.05;
-        p.labelTargetA  = 0; // labels removed — field screen reveals names
+        p.labelTargetA  = 0;
         break;
 
       case 'resolving':
-        // One particle begins sharpening — "observation creates reality"
-        p.targetAlpha   = i === 0 ? 0.95 : 0.28 + Math.random() * 0.15;
-        p.targetClarity = i === 0 ? 0.55 : 0;
+        // FIX: Much sharper contrast — chosen blazes, others near-invisible
+        p.targetAlpha   = i === 0 ? 1.0  : 0.04 + Math.random() * 0.04;
+        p.targetClarity = i === 0 ? 0.80 : 0;
         p.labelTargetA  = 0;
         break;
 
       case 'collapsed':
-        // One fully crystallised, others drift outward and dim
-        p.targetAlpha   = i === 0 ? 1.0  : 0.15 + Math.random() * 0.12;
+        // FIX: Only ONE particle. Others essentially gone.
+        p.targetAlpha   = i === 0 ? 1.0  : 0.04 + Math.random() * 0.04;
         p.targetClarity = i === 0 ? 1.0  : 0;
         p.labelTargetA  = 0;
-        // Drift centres move outward for non-chosen
         if (i !== 0) {
-          p.cx = 0.5 + (p.cx - 0.5) * 1.4;
-          p.cy = 0.28 + (p.cy - 0.28) * 1.4;
+          p.cx = 0.5 + (p.cx - 0.5) * 1.6;
+          p.cy = 0.28 + (p.cy - 0.28) * 1.6;
         }
         break;
 
       case 'field':
-        // All visible, blurry, spread across screen — field of possibility
         p.targetAlpha   = 0.30 + Math.random() * 0.25;
         p.targetClarity = 0;
         p.labelTargetA  = 0;
-        // Reset positions to spread across full screen
         const angle = (i / SP_COUNT) * Math.PI * 2 + Math.random() * 0.5;
         const rad   = 0.18 + Math.random() * 0.22;
         p.cx = 0.5  + Math.cos(angle) * rad;
@@ -319,14 +282,14 @@ function initScene(scene, chosenIdx) {
         break;
 
       case 'state_chosen':
-        // The chosen particle crystallises. Others blur and drift outward.
+        // FIX: Chosen particle only — all others fade to near-zero
         const isChosen = (i === spChosen);
-        p.targetAlpha   = isChosen ? 1.0  : 0.12 + Math.random() * 0.10;
+        p.targetAlpha   = isChosen ? 1.0  : 0.04 + Math.random() * 0.04;
         p.targetClarity = isChosen ? 1.0  : 0;
         p.labelTargetA  = 0;
         if (!isChosen) {
-          p.cx = 0.5 + (p.cx - 0.5) * 1.5;
-          p.cy = 0.32 + (p.cy - 0.32) * 1.5;
+          p.cx = 0.5 + (p.cx - 0.5) * 1.6;
+          p.cy = 0.32 + (p.cy - 0.32) * 1.6;
         }
         break;
     }
@@ -406,66 +369,53 @@ document.getElementById('fontBtn').addEventListener('click', () => {
 });
 
 // ─── SIGIL SEQUENCE ───
+// FIX: Remove sigilParticle entirely.
+// New sequence: "Collapse" fades in → "↑" joins it → whole wordmark holds → transition.
 function runSigil() {
-  const arrow = document.getElementById('sigilArrow');
-  const wm    = document.getElementById('sigilWm');
-  const sp    = document.getElementById('sigilParticle');
-  const fast  = !!visited;
+  const wordEl  = document.getElementById('sigilWord');
+  const arrowEl = document.getElementById('sigilArrowEl');
+  const fast    = !!visited;
 
-  // Particles hidden during arrow — clean dark field for the ceremony
   initScene('hidden');
 
   if (fast) {
+    // Returning user: quick reveal
     setTimeout(() => {
-      arrow.classList.add('crystallized');
       initAudio();
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().then(playCollapseSound);
-      else playCollapseSound();
-    }, 400);
-    setTimeout(() => { arrow.classList.add('dissolving'); }, 1800);
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      wordEl.classList.add('on');
+    }, 300);
     setTimeout(() => {
-      sp.classList.add('visible');
-      setTimeout(() => { sp.style.transition = ''; }, 2200);
-    }, 2600);
-    setTimeout(() => { wm.style.opacity = '1'; }, 3000);
+      arrowEl.classList.add('on');
+      playCollapseSound();
+    }, 900);
     setTimeout(() => {
       tryDrone();
-      sp.style.transition = 'opacity 0.8s ease';
-      sp.style.opacity    = '0';
       buildField();
       crossFade('s-sigil', 's-field', 1.2);
-    }, 4200);
+    }, 3200);
 
   } else {
+    // First visit: ceremonial reveal
     setTimeout(() => {
-      arrow.classList.add('crystallized');
       initAudio();
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().then(playCollapseSound);
-      else playCollapseSound();
-    }, 800);
-    setTimeout(() => { arrow.classList.add('dissolving'); }, 6000);
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      wordEl.classList.add('on');
+    }, 1000);
     setTimeout(() => {
-      sp.classList.add('visible');
-      setTimeout(() => { sp.style.transition = ''; }, 2200);
-    }, 7800);
-    setTimeout(() => { wm.style.opacity = '1'; }, 8600);
-    // Particles fade in gently after arrow dissolves — smooth handoff
-    setTimeout(() => {
-      initScene('superposition');
-    }, 7000);
-
+      arrowEl.classList.add('on');
+      playCollapseSound();
+    }, 3200);
+    // Particles begin materialising in background
+    setTimeout(() => { initScene('superposition'); }, 5000);
     setTimeout(() => {
       buildInit();
-      sp.style.transition = 'opacity 1.4s ease';
-      sp.style.opacity    = '0';
       crossFade('s-sigil', 's-init', 1.4);
-    }, 11000);
+    }, 8500);
   }
 }
 
 // ─── STEP → PARTICLE SCENE MAP ───
-// Each initiation step has a 'ps' (particle scene) key.
-// When the step changes, particles choreograph accordingly.
 const STEP_SCENES = {
   'hidden':       'hidden',
   'sp':           'superposition',
@@ -484,7 +434,6 @@ function applyStepScene(ps) {
 
 // ─── INITIATION ───
 function buildInit() {
-  // Superposition scene — all particles blurry (initParticle removed — sp field is the visual)
   initScene('superposition');
 
   const steps = STEPS[lang];
@@ -501,7 +450,7 @@ function buildInit() {
 
     let h = '';
     if (s.big)   h += `<div class="s-main">${s.big.replace(/\n/g,'<br>').replace(/<em>/g,'<b>').replace(/<\/em>/g,'</b>')}</div>`;
-    if (s.eq)    h += `<div class="s-eq">${s.eq}<br><span style="color:rgba(201,169,110,.32);font-size:.85em">${s.eqSub}</span></div>`;
+    if (s.eq)    h += `<div class="s-eq">${s.eq}<br><span style="color:rgba(201,169,110,.32);font-size:.85em">${s.eqSub || ''}</span></div>`;
     if (s.small) h += `<div class="s-sup">${s.small.replace(/\n/g,'<br>').replace(/<em>/g,'<b>').replace(/<\/em>/g,'</b>')}</div>`;
     if (s.note)  h += `<div class="s-note">${s.note.replace(/<span>/g,'<b>').replace(/<\/span>/g,'</b>')}</div>`;
     if (s.isLast) h += `<button class="ready-btn" id="readyBtn">${TRANSLATIONS[lang].readyBtn}</button>`;
@@ -521,8 +470,6 @@ function buildInit() {
 
   document.getElementById('taph').textContent = TRANSLATIONS[lang].tapHint;
   curStep = 0;
-
-  // Apply first step's particle scene
   applyStepScene(steps[0].ps);
 }
 
@@ -557,8 +504,6 @@ function advanceStep() {
           setTimeout(() => { stepReady = true; }, 1500);
         }, 800);
       }));
-
-      // Trigger particle choreography for this step
       applyStepScene(next.dataset.ps || 'sp');
     }
 
@@ -602,8 +547,6 @@ function buildField() {
   });
 
   document.querySelectorAll('.al').forEach(l => l.classList.add('on'));
-
-  // Field of superposition — all particles drifting, blurry
   initScene('field');
 }
 
@@ -631,7 +574,6 @@ function selectState(state) {
   localStorage.setItem('cu_sobs', JSON.stringify(stateObs));
   curStateName = state.name;
 
-  // Find which particle index matches this state
   const stateIdx = STATES[lang].findIndex(s => s.name === state.name);
   spChosen = stateIdx >= 0 ? stateIdx % SP_COUNT : 0;
 
@@ -690,7 +632,6 @@ function selectState(state) {
   clearAllBreath();
   document.getElementById('tapNext').textContent = t.tapHint;
 
-  // Collapse the chosen particle
   initScene('state_chosen', spChosen);
 
   crossFade('s-field', 's-collapse', 1.0, () => {
@@ -746,8 +687,6 @@ document.getElementById('s-collapse').addEventListener('click', e => {
 });
 
 // ─── BREATH ───
-// One particle. One word. No layout shifts.
-// inhale → hold → [State] → silence → repeat × 3
 function startBreath() {
   clearAllBreath();
   breathRunning = true;
@@ -759,7 +698,6 @@ function startBreath() {
   const btext     = document.getElementById('btext');
   const bend      = document.getElementById('bend');
 
-  // Clean slate
   p.className           = 'bp neutral';
   btext.style.opacity   = '0';
   btext.textContent     = '';
@@ -772,17 +710,13 @@ function startBreath() {
     if (d) d.classList.remove('done');
   });
 
-  // Crossfade single text element — no layout shift ever
   function showText(text, cls, delayMs) {
     bDelay(() => {
-      // Fade out current
       btext.style.transition = 'opacity 0.5s ease';
       btext.style.opacity    = '0';
       bDelay(() => {
-        // Swap content while invisible
         btext.className     = 'btext' + (cls ? ' ' + cls : '');
         btext.textContent   = text;
-        // Fade in
         btext.style.transition = 'opacity 0.7s ease';
         btext.style.opacity    = '1';
       }, 520);
@@ -796,17 +730,9 @@ function startBreath() {
     }, delayMs || 0);
   }
 
-  // Cycle timing (ms from cycle start):
-  //   0ms    — show "inhale", particle blurs out
-  //   4500ms — show "hold",   particle stays blurry
-  //   7300ms — show [State],  particle sharpens, ripple
-  //  11800ms — hide text,     dot fills, brief pause
-  //  12800ms — next cycle
-
   function cycle() {
     if (breathCycle >= 3) {
       breathRunning = false;
-      // Final text already fading — show end message
       bDelay(() => {
         bend.innerHTML = '<p>' + t.breathEnd(stateName).split('\n').join('<br>') + '</p>';
         bend.classList.add('on');
@@ -821,7 +747,6 @@ function startBreath() {
 
     breathCycle++;
 
-    // INHALE — particle expands and blurs
     showText(t.breathInhale, '', 0);
     bDelay(() => {
       p.className = 'bp inhaling';
@@ -830,11 +755,9 @@ function startBreath() {
       void ripple.offsetWidth;
     }, 100);
 
-    // HOLD — particle stays expanded
     showText(t.breathHold, '', 4500);
     bDelay(() => { p.className = 'bp holding'; }, 4500);
 
-    // EXHALE — state name large gold, particle collapses, ripple
     showText(stateName, 'gold', 7300);
     bDelay(() => {
       p.className = 'bp exhaling';
@@ -844,7 +767,6 @@ function startBreath() {
       ripple.classList.add('expand');
     }, 7300);
 
-    // END OF CYCLE — hide text, fill dot, pause, next
     hideText(11800);
     bDelay(() => {
       const dot = document.getElementById('bdot' + (breathCycle - 1));
@@ -905,7 +827,7 @@ function breathGlyph() {
 // ─── ENTER FIELD ───
 function enterField() {
   tryDrone();
-  localStorage.setItem('cu_v35', '1');
+  localStorage.setItem('cu_v37', '1');
   visited = true;
   buildField();
   crossFade('s-init', 's-field', 1.2);

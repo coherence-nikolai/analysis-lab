@@ -1,5 +1,5 @@
-/* Collapse↑ service worker (offline-first, animation-safe) */
-const CACHE_VERSION = 'cu-v36';
+/* Collapse↑ service worker v37 */
+const CACHE_VERSION = 'cu-v37';
 const APP_SHELL = [
   './',
   './index.html',
@@ -27,8 +27,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
-
-  // App shell: cache-first
   if (url.origin === location.origin) {
     event.respondWith(
       caches.match(req).then(cached => cached || fetch(req).then(res => {
@@ -39,8 +37,6 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-
-  // Fonts/styles: stale-while-revalidate (best-effort)
   if (url.hostname.includes('googleapis') || url.hostname.includes('gstatic')) {
     event.respondWith(
       caches.match(req).then(cached => {
