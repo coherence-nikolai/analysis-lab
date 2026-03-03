@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════
-// COLLAPSE↑ — APP LOGIC v3.5
+// COLLAPSE↑ — APP LOGIC v3.6
+// Superposition particle choreography
 // ═══════════════════════════════════════
 
 // ─── STATE ───
@@ -17,8 +18,8 @@ let largeFnt      = false;
 let stillT        = null;
 let audioCtx      = null;
 let droneNodes    = [];
-let stepReady       = true;  // debounce guard for initiation steps
-let isTransitioning = false; // blocks taps during screen transitions
+let stepReady       = true;
+let isTransitioning = false;
 
 // ─── AUDIO ───
 function initAudio() {
@@ -74,12 +75,24 @@ function clearAllBreath() {
   breathRunning = false;
 }
 
-// ─── PARTICLES ───
+// ═══════════════════════════════════════
+// SUPERPOSITION FIELD
+// 8 particles representing versions of self.
+// Each has a clarity value 0..1
+//   0 = fully blurry, drifting, undefined (superposition)
+//   1 = sharp, still, crystallised (collapsed)
+//
+// Choreography is driven by initScene() calls
+// which smoothly animate clarity targets.
+// ═══════════════════════════════════════
+
 const cv = document.getElementById('particleCanvas');
 const cx = cv.getContext('2d');
 let pts = [];
 function rsz() { cv.width = innerWidth; cv.height = innerHeight; }
 window.addEventListener('resize', rsz); rsz();
+
+// Background star specks
 class Pt {
   constructor() { this.reset(); }
   reset() {
@@ -92,7 +105,10 @@ class Pt {
     this.life = 0;
     this.ml = Math.random() * 260 + 130;
   }
-  update() { this.x += this.vx; this.y += this.vy; this.life++; if (this.life > this.ml || this.y < -10) this.reset(); }
+  update() {
+    this.x += this.vx; this.y += this.vy; this.life++;
+    if (this.life > this.ml || this.y < -10) this.reset();
+  }
   draw() {
     const a = this.op * (1 - (this.life / this.ml) ** 2);
     cx.beginPath(); cx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
@@ -100,42 +116,237 @@ class Pt {
   }
 }
 function initPts() { pts = Array.from({ length: 48 }, () => new Pt()); }
-function animPts() { cx.clearRect(0, 0, cv.width, cv.height); pts.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animPts); }
-initPts(); animPts();
+
+// Superposition particles
+const SP_COUNT = 8;
+let spParticles = [];
+// Global clarity target: 0=all blurry, 1=one collapsed
+// chosenIndex: which particle is collapsing (-1 = none)
+let spScene = 'superposition'; // superposition | resolving | collapsed | field
+let spChosen = -1;
+
+class SpParticle {
+  constructor(i) {
+    this.i       = i;
+    this.clarity = 0;      // 0=blurry/unknown, 1=sharp/collapsed
+    this.targetClarity = 0;
+    this.alpha   = 0;      // fade in
+    this.targetAlpha = 0;
+    // Spread across screen in a loose cloud, centred
+    const angle  = (i / SP_COUNT) * Math.PI * 2 + Math.random() * 0.4;
+    const radius = 0.12 + Math.random() * 0.12; // fraction of screen
+    this.cx = 0.5 + Math.cos(angle) * radius;   // centre x (0..1)
+    this.cy = 0.42 + Math.sin(angle) * radius * 0.7; // centre y
+    this.x  = this.cx * cv.width;
+    this.y  = this.cy * cv.height;
+    // Drift
+    this.ph  = Math.random() * Math.PI * 2;
+    this.spd = 0.3 + Math.random() * 0.4;
+    this.driftR = 18 + Math.random() * 22; // drift radius px
+    // Size
+    this.baseR = 7 + Math.random() * 5;
+    // Label (state name) — set when scene transitions
+    this.label  = '';
+    this.labelA = 0;
+    this.labelTargetA = 0;
+  }
+
+  update() {
+    // Ease clarity and alpha toward targets
+    this.clarity += (this.targetClarity - this.clarity) * 0.025;
+    this.alpha   += (this.targetAlpha   - this.alpha)   * 0.030;
+    this.labelA  += (this.labelTargetA  - this.labelA)  * 0.020;
+
+    // Drift — collapsed particle barely moves, superposed ones drift freely
+    this.ph += 0.008 * this.spd;
+    const driftScale = 1 - this.clarity * 0.92;
+    this.x = this.cx * cv.width  + Math.cos(this.ph)        * this.driftR * driftScale;
+    this.y = this.cy * cv.height + Math.sin(this.ph * 0.73) * this.driftR * 0.6 * driftScale;
+
+    // During field scene: drift outward slowly
+    if (spScene === 'field' && this.i !== spChosen) {
+      this.cx += (Math.random() - 0.5) * 0.0002;
+      this.cy += (Math.random() - 0.5) * 0.0002;
+    }
+  }
+
+  draw() {
+    if (this.alpha < 0.01) return;
+    const c = this.clarity;
+
+    // Blur: max at clarity=0, zero at clarity=1
+    const blurPx = (1 - c) * 14 + 2;
+    // Size: slightly larger when collapsed
+    const r = this.baseR * (0.9 + c * 0.5);
+    // Glow radius
+    const glowR = r * (3 - c * 1.5);
+
+    cx.save();
+    cx.globalAlpha = this.alpha;
+    cx.filter = `blur(${blurPx}px)`;
+    cx.globalCompositeOperation = 'lighter';
+
+    // Outer glow
+    const g = cx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
+    const coreA  = 0.20 + c * 0.65;
+    const outerA = 0.0;
+    g.addColorStop(0,   `rgba(240,204,136,${coreA})`);
+    g.addColorStop(0.3, `rgba(240,204,136,${coreA * 0.35})`);
+    g.addColorStop(1,   `rgba(240,204,136,${outerA})`);
+    cx.fillStyle = g;
+    cx.beginPath();
+    cx.arc(this.x, this.y, glowR, 0, Math.PI * 2);
+    cx.fill();
+
+    // Core dot — only visible when semi-collapsed
+    if (c > 0.1) {
+      cx.filter = 'blur(0px)';
+      cx.globalAlpha = this.alpha * c * 0.9;
+      cx.fillStyle = 'rgba(240,204,136,0.95)';
+      cx.beginPath();
+      cx.arc(this.x, this.y, r * 0.3 * c, 0, Math.PI * 2);
+      cx.fill();
+    }
+
+    cx.restore();
+
+    // State label — fades in during 'resolving' step
+    if (this.labelA > 0.01 && this.label) {
+      cx.save();
+      cx.globalAlpha = this.labelA * this.alpha;
+      cx.font = `300 ${Math.round(11 + c * 3)}px 'Plus Jakarta Sans', sans-serif`;
+      cx.fillStyle = `rgba(240,204,136,${0.25 + c * 0.4})`;
+      cx.textAlign = 'center';
+      cx.fillText(this.label, this.x, this.y + r * 2.8 + 14);
+      cx.restore();
+    }
+  }
+}
+
+function initSpParticles() {
+  spParticles = Array.from({ length: SP_COUNT }, (_, i) => new SpParticle(i));
+}
+
+// ─── SCENE TRANSITIONS ───
+// Each scene sets targets on all particles.
+// The update loop eases toward targets — no sudden jumps.
+
+function initScene(scene, chosenIdx) {
+  spScene = scene;
+  if (chosenIdx !== undefined) spChosen = chosenIdx;
+  const states = STATES[lang];
+
+  spParticles.forEach((p, i) => {
+    switch(scene) {
+
+      case 'hidden':
+        p.targetAlpha   = 0;
+        p.targetClarity = 0;
+        p.labelTargetA  = 0;
+        break;
+
+      case 'superposition':
+        // All particles: visible, blurry, drifting, no labels
+        p.targetAlpha   = 0.55 + Math.random() * 0.3;
+        p.targetClarity = 0;
+        p.labelTargetA  = 0;
+        break;
+
+      case 'one_highlighted':
+        // One particle slightly brighter — "this particle"
+        p.targetAlpha   = i === 0 ? 0.85 : 0.35 + Math.random() * 0.2;
+        p.targetClarity = i === 0 ? 0.15 : 0;
+        p.labelTargetA  = 0;
+        break;
+
+      case 'all_labelled':
+        // All blurry but labels ghost in — "every version of you"
+        p.targetAlpha   = 0.55 + Math.random() * 0.25;
+        p.targetClarity = 0.05;
+        p.label         = states[i] ? states[i].name : '';
+        p.labelTargetA  = 0.7;
+        break;
+
+      case 'resolving':
+        // One particle begins sharpening — "observation creates reality"
+        p.targetAlpha   = i === 0 ? 0.95 : 0.28 + Math.random() * 0.15;
+        p.targetClarity = i === 0 ? 0.55 : 0;
+        p.labelTargetA  = 0;
+        break;
+
+      case 'collapsed':
+        // One fully crystallised, others drift outward and dim
+        p.targetAlpha   = i === 0 ? 1.0  : 0.15 + Math.random() * 0.12;
+        p.targetClarity = i === 0 ? 1.0  : 0;
+        p.labelTargetA  = 0;
+        // Drift centres move outward for non-chosen
+        if (i !== 0) {
+          p.cx = 0.5 + (p.cx - 0.5) * 1.4;
+          p.cy = 0.42 + (p.cy - 0.42) * 1.4;
+        }
+        break;
+
+      case 'field':
+        // All visible, blurry, spread across screen — field of possibility
+        p.targetAlpha   = 0.30 + Math.random() * 0.25;
+        p.targetClarity = 0;
+        p.labelTargetA  = 0;
+        // Reset positions to spread across full screen
+        const angle = (i / SP_COUNT) * Math.PI * 2 + Math.random() * 0.5;
+        const rad   = 0.18 + Math.random() * 0.22;
+        p.cx = 0.5  + Math.cos(angle) * rad;
+        p.cy = 0.45 + Math.sin(angle) * rad * 0.65;
+        break;
+
+      case 'state_chosen':
+        // The chosen particle crystallises. Others blur and drift outward.
+        const isChosen = (i === spChosen);
+        p.targetAlpha   = isChosen ? 1.0  : 0.12 + Math.random() * 0.10;
+        p.targetClarity = isChosen ? 1.0  : 0;
+        p.labelTargetA  = 0;
+        if (!isChosen) {
+          p.cx = 0.5 + (p.cx - 0.5) * 1.5;
+          p.cy = 0.45 + (p.cy - 0.45) * 1.5;
+        }
+        break;
+    }
+  });
+}
+
+// Animation loop
+function animLoop() {
+  cx.clearRect(0, 0, cv.width, cv.height);
+  pts.forEach(p => { p.update(); p.draw(); });
+  spParticles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animLoop);
+}
+
+initPts(); initSpParticles();
+initScene('hidden');
+animLoop();
 
 // ─── SCREEN TRANSITIONS ───
-// Fully clears all inline styles on both screens after transition
-// so CSS classes (.screen / .screen.active) have complete authority
 function crossFade(fromId, toId, dur, cb) {
   const from = document.getElementById(fromId);
   const to   = document.getElementById(toId);
   if (!from || !to) return;
   isTransitioning = true;
-
-  // Fade out the leaving screen
   from.style.transition    = `opacity ${dur}s ease`;
   from.style.opacity       = '0';
   from.style.pointerEvents = 'none';
-
   setTimeout(() => {
-    // Fully reset leaving screen — CSS (.screen = opacity:0, pointer-events:none) takes over
     from.classList.remove('active');
     from.style.transition    = '';
     from.style.opacity       = '';
     from.style.pointerEvents = '';
-
-    // Prepare arriving screen
     to.style.opacity    = '0';
     to.style.transition = 'none';
     to.classList.add('active');
-
     requestAnimationFrame(() => requestAnimationFrame(() => {
       to.style.transition    = `opacity ${dur}s ease`;
       to.style.opacity       = '1';
       to.style.pointerEvents = 'all';
-
       setTimeout(() => {
-        // Fully reset arriving screen — CSS (.screen.active = opacity:1, pointer-events:all) takes over
         to.style.transition    = '';
         to.style.opacity       = '';
         to.style.pointerEvents = '';
@@ -175,43 +386,30 @@ document.getElementById('fontBtn').addEventListener('click', () => {
 });
 
 // ─── SIGIL SEQUENCE ───
-//
-// NEW SEQUENCE:
-// 1. Arrow fades in and crystallizes (with sound)
-// 2. Arrow holds, glowing
-// 3. Arrow slowly dissolves
-// 4. Where it pointed — the particle materialises at screen centre
-// 5. Wordmark fades in beneath
-// 6. Advance to next screen
-//
 function runSigil() {
   const arrow = document.getElementById('sigilArrow');
   const wm    = document.getElementById('sigilWm');
   const sp    = document.getElementById('sigilParticle');
-
   const fast  = !!visited;
 
+  // Start superposition field faintly in background
+  initScene('superposition');
+
   if (fast) {
-    // Returning users — condensed 4s version, still beautiful
     setTimeout(() => {
       arrow.classList.add('crystallized');
       initAudio();
       if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().then(playCollapseSound);
       else playCollapseSound();
     }, 400);
-
     setTimeout(() => { arrow.classList.add('dissolving'); }, 1800);
-
     setTimeout(() => {
       sp.classList.add('visible');
       setTimeout(() => { sp.style.transition = ''; }, 2200);
     }, 2600);
-
     setTimeout(() => { wm.style.opacity = '1'; }, 3000);
-
     setTimeout(() => {
       tryDrone();
-      // Hide particle before field — field has no particle
       sp.style.transition = 'opacity 0.8s ease';
       sp.style.opacity    = '0';
       buildField();
@@ -219,28 +417,18 @@ function runSigil() {
     }, 4200);
 
   } else {
-    // First-time users — full ceremony
     setTimeout(() => {
       arrow.classList.add('crystallized');
       initAudio();
       if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().then(playCollapseSound);
       else playCollapseSound();
     }, 800);
-
-    // Arrow holds for ~5s — let it truly land before dissolving
     setTimeout(() => { arrow.classList.add('dissolving'); }, 6000);
-
-    // Particle materialises at screen centre where arrow was pointing
     setTimeout(() => {
       sp.classList.add('visible');
-      // Clear any inline transition after opacity settles so spGlow animation runs clean
       setTimeout(() => { sp.style.transition = ''; }, 2200);
     }, 7800);
-
     setTimeout(() => { wm.style.opacity = '1'; }, 8600);
-
-    // Transition to initiation — particle fades out as init screen fades in
-    // (init screen has its own particle in the same visual region)
     setTimeout(() => {
       buildInit();
       sp.style.transition = 'opacity 1.4s ease';
@@ -250,25 +438,46 @@ function runSigil() {
   }
 }
 
+// ─── STEP → PARTICLE SCENE MAP ───
+// Each initiation step has a 'ps' (particle scene) key.
+// When the step changes, particles choreograph accordingly.
+const STEP_SCENES = {
+  'hidden':       'hidden',
+  'sp':           'superposition',
+  'one':          'one_highlighted',
+  'all_labelled': 'all_labelled',
+  'resolving':    'resolving',
+  'collapse_demo':'collapsed',
+  'stab':         'collapsed',
+  'done':         'collapsed',
+};
+
+function applyStepScene(ps) {
+  const scene = STEP_SCENES[ps] || 'superposition';
+  initScene(scene);
+}
+
 // ─── INITIATION ───
 function buildInit() {
-  // Show the fixed quantum particle
   const ip = document.getElementById('initParticle');
   if (ip) { ip.style.transition = 'opacity 1.2s ease'; ip.classList.add('visible'); }
+
+  // Superposition scene — all particles blurry
+  initScene('superposition');
+
   const steps = STEPS[lang];
   const body  = document.getElementById('initBody');
   body.innerHTML = '';
-  stepReady = false; // lock until first step renders
+  stepReady = false;
   setTimeout(() => { stepReady = true; }, 1500);
 
   steps.forEach((s, i) => {
     const div = document.createElement('div');
     div.className = 'step' + (i === 0 ? ' on' : '');
-    div.dataset.i = i;
+    div.dataset.i  = i;
+    div.dataset.ps = s.ps || 'sp';
 
-    // Build clean, single-voice content — no labels, no colour chaos
     let h = '';
-
     if (s.big)   h += `<div class="s-main">${s.big.replace(/\n/g,'<br>').replace(/<em>/g,'<b>').replace(/<\/em>/g,'</b>')}</div>`;
     if (s.eq)    h += `<div class="s-eq">${s.eq}<br><span style="color:rgba(201,169,110,.32);font-size:.85em">${s.eqSub}</span></div>`;
     if (s.small) h += `<div class="s-sup">${s.small.replace(/\n/g,'<br>').replace(/<em>/g,'<b>').replace(/<\/em>/g,'</b>')}</div>`;
@@ -280,7 +489,6 @@ function buildInit() {
     body.appendChild(div);
   });
 
-  // Dots
   const dots = document.getElementById('sdots');
   dots.innerHTML = '';
   steps.forEach((_, i) => {
@@ -291,19 +499,19 @@ function buildInit() {
 
   document.getElementById('taph').textContent = TRANSLATIONS[lang].tapHint;
   curStep = 0;
+
+  // Apply first step's particle scene
+  applyStepScene(steps[0].ps);
 }
 
 function advanceStep() {
-  if (!stepReady) return; // debounce — ignore tap until step has settled
+  if (!stepReady) return;
   const steps = STEPS[lang];
   if (curStep >= steps.length - 1) return;
-
   const cur = document.querySelector('.step.on');
   if (!cur) return;
+  stepReady = false;
 
-  stepReady = false; // lock during transition
-
-  // Dissolve current step
   cur.style.transition = 'opacity 0.7s ease';
   cur.style.opacity    = '0';
 
@@ -324,16 +532,15 @@ function advanceStep() {
         setTimeout(() => {
           next.style.transition = '';
           next.style.opacity    = '';
-          // Unlock after step has had time to breathe — 1.5s dwell minimum
           setTimeout(() => { stepReady = true; }, 1500);
         }, 800);
       }));
+
+      // Trigger particle choreography for this step
+      applyStepScene(next.dataset.ps || 'sp');
     }
 
-    // Update dots
     document.querySelectorAll('.sdot').forEach((d, i) => d.classList.toggle('on', i <= curStep));
-
-    // Update hint on last step
     document.getElementById('taph').textContent =
       steps[curStep].isLast ? TRANSLATIONS[lang].tapHintLast : TRANSLATIONS[lang].tapHint;
 
@@ -373,9 +580,12 @@ function buildField() {
   });
 
   document.querySelectorAll('.al').forEach(l => l.classList.add('on'));
+
+  // Field of superposition — all particles drifting, blurry
+  initScene('field');
 }
 
-// ─── REVISIT INITIATION ───
+// ─── REVISIT ───
 document.getElementById('revisitBtn').addEventListener('click', () => {
   buildInit();
   crossFade('s-field', 's-init', 1.0);
@@ -383,7 +593,7 @@ document.getElementById('revisitBtn').addEventListener('click', () => {
 
 // ─── SELECT STATE ───
 function selectState(state) {
-  if (isTransitioning) return; // block during screen transitions
+  if (isTransitioning) return;
   if (navigator.vibrate) navigator.vibrate(38);
   initAudio();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
@@ -398,6 +608,10 @@ function selectState(state) {
   localStorage.setItem('cu_obs', totalObs);
   localStorage.setItem('cu_sobs', JSON.stringify(stateObs));
   curStateName = state.name;
+
+  // Find which particle index matches this state
+  const stateIdx = STATES[lang].findIndex(s => s.name === state.name);
+  spChosen = stateIdx >= 0 ? stateIdx % SP_COUNT : 0;
 
   // Ghost state names
   const gh = document.getElementById('ghosts');
@@ -419,7 +633,6 @@ function selectState(state) {
     gh.appendChild(g);
   });
 
-  // Populate all stage content
   const t = TRANSLATIONS[lang];
   const n = stateObs[state.name];
 
@@ -436,26 +649,27 @@ function selectState(state) {
   document.getElementById('qtext').textContent      = state.question;
   document.getElementById('retBtn').textContent     = t.retBtn;
 
-  // Closing — letter by letter, 2s lead delay
   const closingEl   = document.getElementById('closing');
   const closingText = t.closings[Math.floor(Math.random() * t.closings.length)];
   closingEl.innerHTML = '';
   closingText.split('').forEach((ch, i) => {
     const span = document.createElement('span');
-    span.className         = 'closing-letter';
-    span.textContent       = ch;
+    span.className = 'closing-letter';
+    span.textContent = ch;
     span.style.animationDelay = (7.5 + i * 0.045) + 's';
     closingEl.appendChild(span);
   });
 
-  // Reset all stages — fully clear ALL inline styles
   collapseStage = 0;
   document.querySelectorAll('.cp-stage').forEach(s => {
     s.classList.remove('on');
-    s.style.cssText = ''; // let CSS class handle everything cleanly
+    s.style.cssText = '';
   });
   clearAllBreath();
   document.getElementById('tapNext').textContent = t.tapHint;
+
+  // Collapse the chosen particle
+  initScene('state_chosen', spChosen);
 
   crossFade('s-field', 's-collapse', 1.0, () => {
     gh.style.transition = 'opacity 1.8s ease';
@@ -471,14 +685,12 @@ function showCollapseStage(n) {
     collapseStage = n;
     const el = document.getElementById('cs' + n);
     if (!el) return;
-    // Start invisible, no transition yet
     el.style.cssText = 'opacity:0; pointer-events:none; transition:none;';
     el.classList.add('on');
     requestAnimationFrame(() => requestAnimationFrame(() => {
       el.style.transition    = 'opacity 0.9s ease';
       el.style.opacity       = '1';
       el.style.pointerEvents = 'all';
-      // Clear inline styles after fade so CSS class rules cleanly
       setTimeout(() => {
         el.style.transition    = '';
         el.style.opacity       = '';
@@ -496,7 +708,6 @@ function showCollapseStage(n) {
     current.style.pointerEvents = 'none';
     setTimeout(() => {
       current.classList.remove('on');
-      // Fully clear all inline styles on outgoing stage
       current.style.cssText = '';
       reveal();
     }, 700);
@@ -535,7 +746,6 @@ function startBreath() {
   function fadeText(el, newText) {
     el.style.transition = 'opacity 0.6s ease';
     el.style.opacity    = '0';
-    // Wait for old text to fully disappear before showing new text
     bDelay(() => {
       el.textContent      = newText;
       el.style.transition = 'opacity 0.7s ease';
@@ -554,15 +764,12 @@ function startBreath() {
         bend.innerHTML      = `<p>${t.breathEnd(stateName).replace(/\n/g,'<br>')}</p>`;
         bend.classList.add('on');
         ctr.textContent     = '';
-        // Show tap hint so user knows they can continue
         const tapEl = document.getElementById('tapNext');
         bDelay(() => {
           tapEl.style.transition = 'opacity 0.7s ease';
           tapEl.style.opacity    = '1';
         }, 1500);
       }, 600);
-      // Post-breath message waits for deliberate tap — no auto-advance
-      // collapseStage remains 4, next tap on s-collapse will call showCollapseStage(5)
       return;
     }
     breathCycle++;
@@ -574,12 +781,16 @@ function startBreath() {
     void ripple.offsetWidth;
     bDelay(() => {
       p.className = 'bp inhaling';
+      // On inhale — briefly show superposition (blurry) for chosen particle
+      initScene('superposition');
       bDelay(() => {
         p.className = 'bp holding';
         fadeText(instr, t.breathHold);
         bDelay(() => {
           p.className = 'bp exhaling';
           fadeText(instr, t.breathExhale(stateName));
+          // On exhale — collapse back to chosen state
+          initScene('state_chosen', spChosen);
           sn.style.transition = 'opacity 1s ease';
           sn.style.opacity    = '1';
           ripple.classList.remove('expand');
@@ -601,7 +812,6 @@ function startBreath() {
 document.getElementById('retBtn').addEventListener('click', () => {
   clearAllBreath();
   collapseStage = 0;
-  // Hard reset ALL cp-stage inline styles before leaving
   document.querySelectorAll('.cp-stage').forEach(s => {
     s.classList.remove('on');
     s.style.cssText = '';
@@ -645,7 +855,6 @@ function breathGlyph() {
 
 // ─── ENTER FIELD ───
 function enterField() {
-  // Hide the initiation particle
   const ip = document.getElementById('initParticle');
   if (ip) { ip.style.transition = 'opacity 0.8s ease'; ip.classList.remove('visible'); }
   tryDrone();

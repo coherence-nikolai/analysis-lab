@@ -34,8 +34,8 @@ const TRANSLATIONS = {
       'Every environment you inhabit is an observer. New spaces create new you.',
       'You are never collapsing alone. But you are always the primary observer of yourself.'
     ],
-    breathInhale: 'Inhale into superposition',
-    breathExhale: s => `Exhale into ${s}`,
+    breathInhale: 'Inhale into superposition — open, undefined, everything at once',
+    breathExhale: s => `Exhale into ${s} — collapse upward`,
     breathHold: 'Hold...',
     breathCycles: (n,t) => `${n} of ${t}`,
     breathEnd: s => `Your nervous system now knows the direction.\n<strong>${s}</strong> is encoded in you.\nKeep observing.`,
@@ -70,8 +70,8 @@ const TRANSLATIONS = {
       'Cada entorno que habitas es un observador. Nuevos espacios crean nuevo tú.',
       'Nunca colapsas solo. Pero siempre eres el observador principal de ti mismo.'
     ],
-    breathInhale: 'Inhala hacia la superposición',
-    breathExhale: s => `Exhala hacia ${s}`,
+    breathInhale: 'Inhala hacia la superposición — abierto, indefinido, todo a la vez',
+    breathExhale: s => `Exhala hacia ${s} — colapsa hacia arriba`,
     breathHold: 'Sostén...',
     breathCycles: (n,t) => `${n} de ${t}`,
     breathEnd: s => `Tu sistema nervioso ahora conoce la dirección.\n<strong>${s}</strong> está codificado en ti.\nSigue observando.`,
@@ -103,24 +103,121 @@ const STATES = {
 
 const STEPS = {
   en: [
-    { label:'Quantum Superposition', big:'This particle has no definite state\nuntil it is <em>observed.</em>', small:'It exists everywhere at once —\na blur of pure potential.', ps:'sp' },
-    { label:'The Wave Function', eq:'|ψ⟩ = α|calm⟩ + β|courageous⟩ + γ|clear⟩ + …', eqSub:'The wave function of your available self', small:'Every possible state exists simultaneously.\nNone are real until one is measured.', ps:'sp' },
-    { label:'The Observer Effect', big:'Observation does not reveal\nwhat is there.\nIt <em>creates</em> what is there.', ps:'sp' },
-    { label:'Your Self Follows the Same Physics', big:'Observed as <em>anxious</em> for a lifetime —\nit solidifies.', small:'The other versions never disappeared.\nThey were simply <em>unmeasured.</em>', ps:'stab' },
-    { label:'The Mechanism', big:'The first time you observe courage —\nit flickers.\nThe hundredth time —\nit is simply <em>who you are.</em>', note:'<span>Verified:</span> Neuroplasticity confirms repeated observation patterns rebuild neural architecture. Identity forms through accumulated attention.', ps:'stab' },
-    { label:'The Quantum Rut', big:'The same observation, repeated,\ncreates a groove so deep\nit feels like <em>physics.</em>', small:'It is not fixed.\nThe superposition still contains\n<em>everything you have ever hoped to be.</em>', ps:'stab' },
-    { label:'This Space', big:'This app will never rush you.\nNothing moves\nuntil you move it.', ps:'stab' },
-    { label:'The Experiment', big:'You are about to run\nthis experiment on yourself.', small:'<em>Consciously.</em>', ps:'done', isLast:true }
+    {
+      // STEP 1 — Particles are all blurry and drifting. User sees this first.
+      // ps:'sp' = superposition scene — all 8 particles blurry, drifting
+      big:'These are particles.\nRight now they have no definite state.',
+      small:'Watch them. Blurry. Drifting. Undefined.\nEverywhere at once.',
+      ps:'sp'
+    },
+    {
+      // STEP 2 — Name what they just saw
+      big:'This is called <b>superposition.</b>',
+      small:'Every possible state exists simultaneously.\nNone more real than another.\nUntil one is measured.',
+      ps:'sp'
+    },
+    {
+      // STEP 3 — One particle begins to highlight
+      // ps:'one' = one_highlighted scene — one particle slightly brighter
+      big:'Now watch what happens\nwhen this particle is <b>observed.</b>',
+      ps:'one'
+    },
+    {
+      // STEP 4 — Labels ghost in on all particles
+      // ps:'all_labelled' = all particles show state name labels
+      big:'Every version of you\nexists right now.',
+      small:'Calm. Courageous. Clear. Present.\nAll equally real. All waiting.',
+      ps:'all_labelled'
+    },
+    {
+      // STEP 5 — One particle begins resolving
+      // ps:'resolving' = one particle sharpening slowly
+      big:'Observation does not reveal\nwhat is there.\nIt <b>creates</b> what is there.',
+      ps:'resolving'
+    },
+    {
+      // STEP 6 — Full collapse — one sharp, others drift outward
+      // ps:'collapse_demo' = collapsed scene
+      big:'This is <b>collapse.</b>',
+      small:'Not loss. Not failure.\nThe moment infinite becomes real.\nYou chose one. It became this.',
+      ps:'collapse_demo'
+    },
+    {
+      // STEP 7 — Bridge to self
+      big:'Your nervous system\nfollows the same physics.',
+      small:'Observed as <b>anxious</b> for a lifetime — it solidifies.\nThe other versions never disappeared.\nThey were simply unmeasured.',
+      ps:'stab'
+    },
+    {
+      // STEP 8 — The mechanism
+      big:'The first time you observe courage —\nit flickers.\nThe hundredth time —\nit is simply <b>who you are.</b>',
+      note:'<span>Verified:</span> Neuroplasticity confirms repeated observation patterns rebuild neural architecture. Identity forms through accumulated attention.',
+      ps:'stab'
+    },
+    {
+      // STEP 9 — The breath primed
+      big:'When you breathe in superposition —\nyou are returning to the open field.\n<b>Everything possible. Nothing fixed.</b>',
+      small:'When you exhale into a state —\nyou are collapsing upward.\nChoosing which version becomes real.',
+      ps:'stab'
+    },
+    {
+      // STEP 10 — The experiment
+      big:'You are about to run\nthis experiment on yourself.',
+      small:'<b>Consciously.</b>',
+      ps:'done',
+      isLast:true
+    }
   ],
   es: [
-    { label:'Superposición Cuántica', big:'Esta partícula no tiene estado definido\nhasta que es <em>observada.</em>', small:'Existe en todas partes a la vez —\nuna niebla de puro potencial.', ps:'sp' },
-    { label:'La Función de Onda', eq:'|ψ⟩ = α|sereno⟩ + β|valiente⟩ + γ|claro⟩ + …', eqSub:'La función de onda de tu yo disponible', small:'Todos los estados posibles existen simultáneamente.\nNinguno es real hasta que uno es medido.', ps:'sp' },
-    { label:'El Efecto Observador', big:'La observación no revela\nlo que está ahí.\nLo <em>crea.</em>', ps:'sp' },
-    { label:'Tu Yo Sigue la Misma Física', big:'Observado como <em>ansioso</em> toda una vida —\nse solidifica.', small:'Las otras versiones nunca desaparecieron.\nSimplemente no fueron <em>medidas.</em>', ps:'stab' },
-    { label:'El Mecanismo', big:'La primera vez que observas valentía —\ntitila.\nLa centésima vez —\nsimplemente es <em>quien eres.</em>', note:'<span>Verificado:</span> La neuroplasticidad confirma que los patrones de observación repetida reconstruyen la arquitectura neural.', ps:'stab' },
-    { label:'El Surco Cuántico', big:'La misma observación, repetida,\ncrea un surco tan profundo\nque se siente como <em>física.</em>', small:'No está fijo.\nLa superposición aún contiene\n<em>todo lo que has esperado ser.</em>', ps:'stab' },
-    { label:'Este Espacio', big:'Esta app nunca te apresurará.\nNada se mueve\nhasta que tú te muevas.', ps:'stab' },
-    { label:'El Experimento', big:'Estás a punto de ejecutar\neste experimento en ti mismo.', small:'<em>Conscientemente.</em>', ps:'done', isLast:true }
+    {
+      big:'Estas son partículas.\nAhora mismo no tienen un estado definido.',
+      small:'Obsérvales. Borrosas. Derivando. Indefinidas.\nEn todas partes a la vez.',
+      ps:'sp'
+    },
+    {
+      big:'Esto se llama <b>superposición.</b>',
+      small:'Todos los estados posibles existen simultáneamente.\nNinguno más real que otro.\nHasta que uno es medido.',
+      ps:'sp'
+    },
+    {
+      big:'Ahora observa qué sucede\ncuando esta partícula es <b>observada.</b>',
+      ps:'one'
+    },
+    {
+      big:'Cada versión de ti\nexiste ahora mismo.',
+      small:'Sereno. Valiente. Claro. Presente.\nTodos igualmente reales. Todos esperando.',
+      ps:'all_labelled'
+    },
+    {
+      big:'La observación no revela\nlo que está ahí.\nLo <b>crea.</b>',
+      ps:'resolving'
+    },
+    {
+      big:'Esto es el <b>colapso.</b>',
+      small:'No es pérdida. No es fallo.\nEl momento en que lo infinito se vuelve real.\nElegiste uno. Se convirtió en esto.',
+      ps:'collapse_demo'
+    },
+    {
+      big:'Tu sistema nervioso\nsigue la misma física.',
+      small:'Observado como <b>ansioso</b> toda una vida — se solidifica.\nLas otras versiones nunca desaparecieron.\nSimplemente no fueron medidas.',
+      ps:'stab'
+    },
+    {
+      big:'La primera vez que observas valentía —\ntitila.\nLa centésima vez —\nsimplemente es <b>quien eres.</b>',
+      note:'<span>Verificado:</span> La neuroplasticidad confirma que los patrones de observación repetida reconstruyen la arquitectura neural.',
+      ps:'stab'
+    },
+    {
+      big:'Cuando inhales en superposición —\nvuelves al campo abierto.\n<b>Todo posible. Nada fijo.</b>',
+      small:'Cuando exhalas hacia un estado —\nestás colapsando hacia arriba.\nEligiendo qué versión se vuelve real.',
+      ps:'stab'
+    },
+    {
+      big:'Estás a punto de ejecutar\neste experimento en ti mismo.',
+      small:'<b>Conscientemente.</b>',
+      ps:'done',
+      isLast:true
+    }
   ]
 };
 
