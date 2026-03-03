@@ -477,7 +477,15 @@ function selectState(state) {
   });
   const t = TRANSLATIONS[lang];
   const n = stateObs[state.name];
-  document.getElementById('cword').textContent      = state.name;
+  // Set cword with font size scaled to word length — prevents overflow on long words
+  const cwordEl = document.getElementById('cword');
+  cwordEl.textContent = state.name;
+  const wl = state.name.length;
+  cwordEl.style.fontSize = wl <= 5  ? 'clamp(40px,12vw,72px)'
+                         : wl <= 7  ? 'clamp(34px,10vw,60px)'
+                         : wl <= 9  ? 'clamp(26px,8vw,46px)'
+                         : wl <= 11 ? 'clamp(20px,6vw,34px)'
+                         :             'clamp(16px,5vw,26px)';
   document.getElementById('cLabel').textContent     = t.cLabel;
   document.getElementById('cSub').textContent       = t.cSub;
   document.getElementById('ceq').textContent        = state.eq;
@@ -489,23 +497,19 @@ function selectState(state) {
   document.getElementById('qtext').textContent      = state.question;
   document.getElementById('retBtn').textContent     = t.retBtn;
 
-  // FIX: pre-build closing text with stable layout before transition
+  // FIX: closing text — pure JS setTimeout, no CSS animation, no reflow
+  // iOS Safari handles animation-delay on opacity unreliably
   const closingEl   = document.getElementById('closing');
   const closingText = t.closings[Math.floor(Math.random() * t.closings.length)];
-  closingEl.innerHTML = '';
-  closingEl.style.visibility = 'hidden';
+  closingEl.classList.remove('fade-in-delayed');
+  closingEl.style.opacity = '0';
+  closingEl.style.transition = 'none';
   closingEl.textContent = closingText;
-  requestAnimationFrame(() => {
-    closingEl.innerHTML = '';
-    closingText.split('').forEach((ch, i) => {
-      const span = document.createElement('span');
-      span.className = 'closing-letter';
-      span.textContent = ch;
-      span.style.animationDelay = (7.5 + i * 0.045) + 's';
-      closingEl.appendChild(span);
-    });
-    closingEl.style.visibility = '';
-  });
+  // After 7.5s, fade in cleanly
+  setTimeout(() => {
+    closingEl.style.transition = 'opacity 1.6s ease';
+    closingEl.style.opacity = '1';
+  }, 7500);
 
   collapseStage = 0;
   document.querySelectorAll('.cp-stage').forEach(s => { s.classList.remove('on'); s.style.cssText = ''; });
